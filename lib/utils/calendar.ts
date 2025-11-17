@@ -6,6 +6,7 @@ import type { Booking } from "@/types/booking";
  * Calendar event with booking resource attached
  */
 export interface CalendarEvent extends Event {
+  id?: string;
   resource?: Booking;
 }
 
