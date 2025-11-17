@@ -110,14 +110,14 @@ export function BookingForm({ options }: BookingFormProps) {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-border p-6">
-        <h2 className="text-2xl font-semibold">Reservering Maken</h2>
+    <div className="flex min-h-full flex-col md:h-full">
+      <div className="border-b border-border p-4 md:p-6">
+        <h2 className="text-xl font-semibold md:text-2xl">Reservering Maken</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Vul het formulier in om een reservering te maken
         </p>
       </div>
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 p-4 md:p-6">
         <FormProvider {...methods}>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <TextField

@@ -95,7 +95,7 @@ export function CalendarView() {
           Bekijk beschikbare en gereserveerde datums
         </p>
       </div>
-      <div className="h-[600px] rounded-lg border border-border bg-card p-4">
+      <div className="h-[400px] rounded-lg border border-border bg-card p-2 sm:h-[500px] sm:p-4 md:h-[600px]">
         <Calendar
           localizer={localizer}
           events={events}

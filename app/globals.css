@@ -127,7 +127,7 @@
 }
 
 .rbc-header {
-  @apply border-b border-border bg-muted/50 py-2 text-sm font-medium text-muted-foreground;
+  @apply border-b border-border bg-muted/50 py-1 text-xs font-medium text-muted-foreground md:py-2 md:text-sm;
 }
 
 .rbc-today {
@@ -140,6 +140,10 @@
 
 .rbc-date-cell {
   @apply text-foreground;
+}
+
+.rbc-date-cell > a {
+  @apply text-xs md:text-sm;
 }
 
 .rbc-day-slot .rbc-time-slot {
@@ -171,11 +175,11 @@
 }
 
 .rbc-toolbar {
-  @apply mb-4 flex flex-wrap items-center justify-between gap-2;
+  @apply mb-2 flex flex-wrap items-center justify-between gap-1 md:mb-4 md:gap-2;
 }
 
 .rbc-toolbar button {
-  @apply rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground;
+  @apply rounded-md border border-border bg-background px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground md:px-3 md:py-1.5 md:text-sm;
 }
 
 .rbc-toolbar button:active,
@@ -184,7 +188,7 @@
 }
 
 .rbc-toolbar-label {
-  @apply text-lg font-semibold text-foreground;
+  @apply text-sm font-semibold text-foreground md:text-lg;
 }
 
 .rbc-month-view {
@@ -196,7 +200,7 @@
 }
 
 .rbc-day-bg {
-  @apply border-r border-border;
+  @apply min-h-[60px] border-r border-border md:min-h-[80px];
 }
 
 .rbc-day-bg:last-child {
