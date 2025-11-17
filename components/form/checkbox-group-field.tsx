@@ -27,7 +27,10 @@ export function CheckboxGroupField({
   icon,
   className,
 }: CheckboxGroupFieldProps) {
-  const { control, formState: { errors } } = useFormContext();
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext();
 
   const error = errors[name]?.message as string | undefined;
 
@@ -39,10 +42,39 @@ export function CheckboxGroupField({
         const selectedValues = (field.value || []) as string[];
 
         const handleChange = (value: string, checked: boolean) => {
+          // If "full" (volledige faciliteit) is being checked, select all options
+          if (value === "full" && checked) {
+            const allValues = options.map((option) => option.value);
+            field.onChange(allValues);
+            return;
+          }
+
+          // If "full" is being unchecked, uncheck all options
+          if (value === "full" && !checked) {
+            field.onChange([]);
+            return;
+          }
+
+          // Normal checkbox behavior for other options
           if (checked) {
-            field.onChange([...selectedValues, value]);
+            const newValues = [...selectedValues, value];
+            // If all options are now selected, also ensure "full" is selected
+            const allOptionValues = options.map((opt) => opt.value);
+            const allSelected = allOptionValues.every((val) =>
+              newValues.includes(val)
+            );
+            if (allSelected && !newValues.includes("full")) {
+              newValues.push("full");
+            }
+            field.onChange(newValues);
           } else {
-            field.onChange(selectedValues.filter((v) => v !== value));
+            const newValues = selectedValues.filter((v) => v !== value);
+            // If an individual option is unchecked, also uncheck "full" if it was selected
+            if (newValues.includes("full")) {
+              field.onChange(newValues.filter((v) => v !== "full"));
+            } else {
+              field.onChange(newValues);
+            }
           }
         };
 
@@ -58,7 +90,10 @@ export function CheckboxGroupField({
               {options.map((option) => {
                 const isChecked = selectedValues.includes(option.value);
                 return (
-                  <div key={option.value} className="flex items-center space-x-2">
+                  <div
+                    key={option.value}
+                    className="flex items-center space-x-2"
+                  >
                     <Checkbox
                       id={`${name}-${option.value}`}
                       checked={isChecked}

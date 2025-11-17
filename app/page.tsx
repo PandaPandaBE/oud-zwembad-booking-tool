@@ -1,13 +1,18 @@
-"use client";
-
 import { BookingForm } from "@/components/booking-form";
 import { CalendarView } from "@/components/calendar-view";
 import { GeneralInfo } from "@/components/general-info";
 import { ReservationTypes } from "@/components/options-and-prices";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getOptions } from "@/lib/actions/options";
 import { Calendar, Info, Package } from "lucide-react";
 
-export default function Home() {
+export default async function Home() {
+  const options = await getOptions();
+
+  if (!options.ok) {
+    throw new Error(options.message || "Failed to fetch options");
+  }
+
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       {/* Header */}
@@ -19,7 +24,7 @@ export default function Home() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left Pane - Booking Form */}
         <aside className="w-full border-r border-border bg-background md:w-[600px] md:flex-shrink-0">
-          <BookingForm />
+          <BookingForm options={options.data} />
         </aside>
 
         {/* Right Pane - Tabs */}

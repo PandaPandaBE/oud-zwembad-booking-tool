@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/database";
+import type { BookingInsert, Database, Option } from "@/types/database";
 import type { BookingFormData } from "@/lib/validations";
+import { logError } from "@/lib/utils/logger";
 
 export interface BookingWithOptions {
   id: string;
@@ -46,6 +47,7 @@ export interface BookingService {
   ): Promise<BookingWithOptions>;
   deleteBooking(id: string): Promise<void>;
   getOptionsByIds(ids: string[]): Promise<Array<{ id: string; price: number }>>;
+  getAllOptions(): Promise<Option[]>;
 }
 
 export class SupabaseBookingService implements BookingService {
@@ -79,6 +81,13 @@ export class SupabaseBookingService implements BookingService {
     const { data, error } = await query;
 
     if (error) {
+      logError("Failed to fetch bookings from database", error, {
+        operation: "getBookings",
+        params,
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+      });
       throw error;
     }
 
@@ -102,8 +111,16 @@ export class SupabaseBookingService implements BookingService {
 
     if (error) {
       if (error.code === "PGRST116") {
+        // Not found - this is expected, not an error
         return null;
       }
+      logError("Failed to fetch booking by ID from database", error, {
+        operation: "getBookingById",
+        bookingId: id,
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+      });
       throw error;
     }
 
@@ -120,8 +137,11 @@ export class SupabaseBookingService implements BookingService {
       0
     );
 
-    // Prepare booking data
-    const bookingData = {
+    // Prepare booking data (exclude option_ids as it's not a database column)
+    const bookingData: Omit<
+      Database["public"]["Tables"]["bookings"]["Insert"],
+      "option_ids"
+    > = {
       name: data.name,
       email: data.email,
       phone: data.phone,
@@ -134,16 +154,37 @@ export class SupabaseBookingService implements BookingService {
     // Insert booking
     const { data: newBooking, error: bookingError } = await this.supabase
       .from("bookings")
-      .insert(bookingData as any)
+      .insert([bookingData] as any)
       .select()
       .single();
 
     if (bookingError) {
+      logError("Failed to create booking in database", bookingError, {
+        operation: "createBooking",
+        bookingData: {
+          name: data.name,
+          email: data.email,
+          date: data.date,
+          totalPrice,
+        },
+        errorCode: bookingError.code,
+        errorMessage: bookingError.message,
+        errorDetails: bookingError.details,
+      });
       throw bookingError;
     }
 
     if (!newBooking) {
-      throw new Error("Failed to create booking");
+      const error = new Error("Failed to create booking");
+      logError("Booking creation returned no data", error, {
+        operation: "createBooking",
+        bookingData: {
+          name: data.name,
+          email: data.email,
+          date: data.date,
+        },
+      });
+      throw error;
     }
 
     const bookingId = (newBooking as any).id;
@@ -159,6 +200,18 @@ export class SupabaseBookingService implements BookingService {
       .insert(bookingOptions as any);
 
     if (junctionError) {
+      logError(
+        "Failed to create booking_options junction records",
+        junctionError,
+        {
+          operation: "createBooking",
+          bookingId,
+          optionIds: data.reservationType,
+          errorCode: junctionError.code,
+          errorMessage: junctionError.message,
+          errorDetails: junctionError.details,
+        }
+      );
       // Try to clean up the booking if junction insert fails
       await this.supabase.from("bookings").delete().eq("id", bookingId);
       throw junctionError;
@@ -167,7 +220,12 @@ export class SupabaseBookingService implements BookingService {
     // Fetch the complete booking with options
     const booking = await this.getBookingById(bookingId);
     if (!booking) {
-      throw new Error("Failed to fetch created booking");
+      const error = new Error("Failed to fetch created booking");
+      logError("Failed to fetch created booking after creation", error, {
+        operation: "createBooking",
+        bookingId,
+      });
+      throw error;
     }
 
     return booking;
@@ -181,10 +239,22 @@ export class SupabaseBookingService implements BookingService {
     // Check if booking exists
     const existingBooking = await this.getBookingById(id);
     if (!existingBooking) {
-      throw new Error("Booking not found");
+      const error = new Error("Booking not found");
+      logError("Booking not found for update", error, {
+        operation: "updateBooking",
+        bookingId: id,
+      });
+      throw error;
     }
 
-    const bookingData: Record<string, any> = {};
+    const bookingData: Partial<{
+      name: string;
+      email: string;
+      phone: string;
+      reservation_date: string;
+      notes: string | null;
+      total_price: number;
+    }> = {};
 
     if (data.name !== undefined) {
       bookingData.name = data.name;
@@ -218,11 +288,21 @@ export class SupabaseBookingService implements BookingService {
         .eq("booking_id", id);
 
       if (deleteError) {
+        logError("Failed to delete existing booking_options", deleteError, {
+          operation: "updateBooking",
+          bookingId: id,
+          errorCode: deleteError.code,
+          errorMessage: deleteError.message,
+          errorDetails: deleteError.details,
+        });
         throw deleteError;
       }
 
       // Insert new booking_options
-      const bookingOptions = data.reservationType.map((optionId: string) => ({
+      const bookingOptions: Array<{
+        booking_id: string;
+        option_id: string;
+      }> = data.reservationType.map((optionId: string) => ({
         booking_id: id,
         option_id: optionId,
       }));
@@ -232,6 +312,14 @@ export class SupabaseBookingService implements BookingService {
         .insert(bookingOptions as any);
 
       if (insertError) {
+        logError("Failed to insert new booking_options", insertError, {
+          operation: "updateBooking",
+          bookingId: id,
+          optionIds: data.reservationType,
+          errorCode: insertError.code,
+          errorMessage: insertError.message,
+          errorDetails: insertError.details,
+        });
         throw insertError;
       }
     }
@@ -240,10 +328,19 @@ export class SupabaseBookingService implements BookingService {
     if (Object.keys(bookingData).length > 0) {
       const { error: updateError } = await this.supabase
         .from("bookings")
-        .update(bookingData as any)
+        // @ts-ignore - Supabase type inference issue with dynamic bookingData
+        .update(bookingData)
         .eq("id", id);
 
       if (updateError) {
+        logError("Failed to update booking in database", updateError, {
+          operation: "updateBooking",
+          bookingId: id,
+          updateData: bookingData,
+          errorCode: updateError.code,
+          errorMessage: updateError.message,
+          errorDetails: updateError.details,
+        });
         throw updateError;
       }
     }
@@ -251,7 +348,12 @@ export class SupabaseBookingService implements BookingService {
     // Fetch updated booking
     const updatedBooking = await this.getBookingById(id);
     if (!updatedBooking) {
-      throw new Error("Failed to fetch updated booking");
+      const error = new Error("Failed to fetch updated booking");
+      logError("Failed to fetch updated booking after update", error, {
+        operation: "updateBooking",
+        bookingId: id,
+      });
+      throw error;
     }
 
     return updatedBooking;
@@ -260,7 +362,12 @@ export class SupabaseBookingService implements BookingService {
   async deleteBooking(id: string): Promise<void> {
     const existingBooking = await this.getBookingById(id);
     if (!existingBooking) {
-      throw new Error("Booking not found");
+      const error = new Error("Booking not found");
+      logError("Booking not found for deletion", error, {
+        operation: "deleteBooking",
+        bookingId: id,
+      });
+      throw error;
     }
 
     const { error } = await this.supabase
@@ -269,6 +376,13 @@ export class SupabaseBookingService implements BookingService {
       .eq("id", id);
 
     if (error) {
+      logError("Failed to delete booking from database", error, {
+        operation: "deleteBooking",
+        bookingId: id,
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+      });
       throw error;
     }
   }
@@ -283,9 +397,36 @@ export class SupabaseBookingService implements BookingService {
       .eq("active", true);
 
     if (error) {
+      logError("Failed to fetch options by IDs from database", error, {
+        operation: "getOptionsByIds",
+        optionIds: ids,
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+      });
       throw error;
     }
 
     return (data as Array<{ id: string; price: number }>) || [];
+  }
+
+  async getAllOptions(): Promise<Option[]> {
+    const { data, error } = await this.supabase
+      .from("options")
+      .select("*")
+      .eq("active", true)
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      logError("Failed to fetch all options from database", error, {
+        operation: "getAllOptions",
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details,
+      });
+      throw error;
+    }
+
+    return (data as Option[]) || [];
   }
 }

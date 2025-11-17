@@ -1,5 +1,4 @@
 import type {
-  Booking,
   CreateBookingParams,
   CreateBookingResponse,
   GetBookingsParams,
@@ -9,16 +8,9 @@ import type {
   UpdateBookingResponse,
   DeleteBookingResponse,
 } from "@/types/booking";
+import { handleResponse } from "./utils";
 
 const API_BASE_URL = "/api/bookings";
-
-async function handleResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Er is een fout opgetreden bij de API call");
-  }
-  return response.json();
-}
 
 export async function createBooking(
   params: CreateBookingParams

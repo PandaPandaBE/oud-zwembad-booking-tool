@@ -1,5 +1,7 @@
 // Database types matching Supabase schema
 
+import type { Option } from "./option";
+
 /**
  * Supabase Database type definition
  * Maps table names to their row types
@@ -42,16 +44,8 @@ export interface Database {
   };
 }
 
-export type Option = {
-  id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  active: boolean;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-};
+// Re-export Option for convenience and backward compatibility
+export type { Option } from "./option";
 
 export type BookingStatus = "pending" | "confirmed" | "cancelled";
 
@@ -130,9 +124,11 @@ export type BookingUpdate = Partial<
 };
 
 // For inserting options (omits auto-generated fields)
+// Note: Use types from @/types/option for API operations
 export type OptionInsert = Omit<Option, "id" | "created_at" | "updated_at">;
 
 // For updating options
+// Note: Use types from @/types/option for API operations
 export type OptionUpdate = Partial<
   Omit<Option, "id" | "created_at" | "updated_at">
 > & {

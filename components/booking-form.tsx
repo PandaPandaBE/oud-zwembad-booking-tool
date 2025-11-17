@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { Calendar, Clock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,14 +16,8 @@ import {
 } from "@/components/form";
 import { bookingFormSchema, type BookingFormData } from "@/lib/validations";
 import { useCreateBooking } from "@/hooks/use-create-booking";
-
-const RESERVATION_TYPES = [
-  { value: "kitchen", label: "Keuken" },
-  { value: "room1", label: "Ruimte 1" },
-  { value: "room2", label: "Ruimte 2" },
-  { value: "pool", label: "Zwembad" },
-  { value: "full", label: "Volledige faciliteit" },
-];
+import { useSelectedDate } from "@/app/providers";
+import { Option } from "@/types/option";
 
 const DURATION_OPTIONS = [
   { value: "1", label: "1 uur" },
@@ -51,8 +46,13 @@ const TIME_SLOTS = [
   { value: "22:00", label: "22:00" },
 ];
 
-export function BookingForm() {
+type BookingFormProps = {
+  options: Option[];
+};
+
+export function BookingForm({ options }: BookingFormProps) {
   const createBookingMutation = useCreateBooking();
+  const { setSelectedDate } = useSelectedDate();
 
   const methods = useForm<BookingFormData>({
     resolver: zodResolver(bookingFormSchema),
@@ -61,7 +61,32 @@ export function BookingForm() {
     },
   });
 
-  const { handleSubmit, reset } = methods;
+  const { handleSubmit, reset, control } = methods;
+
+  // Watch the date field and update the context when it changes
+  const selectedDateValue = useWatch({
+    control,
+    name: "date",
+  });
+
+  useEffect(() => {
+    if (selectedDateValue) {
+      // Parse the date string (YYYY-MM-DD) and set it in context
+      const date = new Date(selectedDateValue + "T00:00:00");
+      if (!isNaN(date.getTime())) {
+        setSelectedDate(date);
+      }
+    } else {
+      setSelectedDate(null);
+    }
+  }, [selectedDateValue, setSelectedDate]);
+
+  // Transform options from database to form format
+  const reservationTypeOptions =
+    options?.map((option) => ({
+      value: option.id, // Use UUID as value
+      label: option.name, // Use name as label
+    })) || [];
 
   const onSubmit = async (data: BookingFormData) => {
     createBookingMutation.mutate(data, {
@@ -110,7 +135,7 @@ export function BookingForm() {
             <CheckboxGroupField
               name="reservationType"
               label="Reserveringstype"
-              options={RESERVATION_TYPES}
+              options={reservationTypeOptions}
               required
               icon={Calendar}
             />

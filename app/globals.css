@@ -120,3 +120,89 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* React Big Calendar custom styles */
+.rbc-calendar {
+  @apply text-foreground;
+}
+
+.rbc-header {
+  @apply border-b border-border bg-muted/50 py-2 text-sm font-medium text-muted-foreground;
+}
+
+.rbc-today {
+  @apply bg-accent/20;
+}
+
+.rbc-off-range-bg {
+  @apply bg-muted/30;
+}
+
+.rbc-date-cell {
+  @apply text-foreground;
+}
+
+.rbc-day-slot .rbc-time-slot {
+  @apply border-t border-border/50;
+}
+
+.rbc-time-header-content {
+  @apply border-l border-border;
+}
+
+.rbc-time-content {
+  @apply border-t border-border;
+}
+
+.rbc-event {
+  @apply rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-xs text-primary-foreground;
+}
+
+.rbc-event:focus {
+  @apply outline-none ring-2 ring-ring ring-offset-2;
+}
+
+.rbc-selected {
+  @apply bg-primary/20;
+}
+
+.rbc-show-more {
+  @apply rounded-md bg-accent px-2 py-1 text-xs text-accent-foreground hover:bg-accent/80;
+}
+
+.rbc-toolbar {
+  @apply mb-4 flex flex-wrap items-center justify-between gap-2;
+}
+
+.rbc-toolbar button {
+  @apply rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground;
+}
+
+.rbc-toolbar button:active,
+.rbc-toolbar button.rbc-active {
+  @apply bg-primary text-primary-foreground;
+}
+
+.rbc-toolbar-label {
+  @apply text-lg font-semibold text-foreground;
+}
+
+.rbc-month-view {
+  @apply border border-border;
+}
+
+.rbc-month-row {
+  @apply border-b border-border;
+}
+
+.rbc-day-bg {
+  @apply border-r border-border;
+}
+
+.rbc-day-bg:last-child {
+  @apply border-r-0;
+}
+
+.rbc-current-time-indicator {
+  @apply bg-primary;
+}
