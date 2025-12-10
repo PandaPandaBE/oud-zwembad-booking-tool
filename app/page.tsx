@@ -2,6 +2,8 @@ import { BookingForm } from "@/components/booking-form";
 import { ResponsiveTabs } from "@/components/responsive-tabs";
 import { getOptions } from "@/lib/actions/options";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const options = await getOptions();
 
